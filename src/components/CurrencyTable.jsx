@@ -7,38 +7,32 @@ const CurrencyTable = () => {
   const [loading, setLoading] = useState(true);
   const [lastUpdate, setLastUpdate] = useState("");
 
-  const parsePrice = (priceStr) => {
-    if (!priceStr) return 0;
-    // Gelen veriyi güvenli bir şekilde ondalık sayıya çeviriyoruz
-    return parseFloat(String(priceStr).replace(',', '.'));
-  };
-
   const fetchRates = async () => {
     setLoading(true);
     try {
-      // Kendi Netlify sunucumuz üzerinden Resmi API'ye bağlanıyoruz
+      // Vercel üzerindeki kendi API yolumuza bağlanıyoruz
       const response = await axios.get('/api/doviz');
       const data = response.data;
 
-      // Makaslar kaldırıldı, ham piyasa verisi ekrana basılıyor.
+      // Veriler zaten api/doviz.js'de temizlendiği için doğrudan eşleştiriyoruz
       const newRates = [
         { 
           code: 'USD', 
           name: 'Amerikan Doları', 
-          buying: parsePrice(data.USD.alis).toFixed(2), 
-          selling: parsePrice(data.USD.satis).toFixed(2) 
+          buying: data.USD?.alis || "0.0000", 
+          selling: data.USD?.satis || "0.0000" 
         },
         { 
           code: 'EUR', 
           name: 'Euro', 
-          buying: parsePrice(data.EUR.alis).toFixed(2), 
-          selling: parsePrice(data.EUR.satis).toFixed(2) 
+          buying: data.EUR?.alis || "0.0000", 
+          selling: data.EUR?.satis || "0.0000" 
         },
         { 
           code: 'GBP', 
           name: 'İngiliz Sterlini', 
-          buying: parsePrice(data.GBP.alis).toFixed(2), 
-          selling: parsePrice(data.GBP.satis).toFixed(2) 
+          buying: data.GBP?.alis || "0.0000", 
+          selling: data.GBP?.satis || "0.0000" 
         }
       ];
 
@@ -56,8 +50,7 @@ const CurrencyTable = () => {
 
   useEffect(() => {
     fetchRates();
-    // DİKKAT: Ücretsiz API kotanı korumak için yenileme süresi 5 dakikaya (300000 ms) çıkarıldı!
-    // Müşteriler anlık veri için diledikleri zaman yenile butonunu kullanabilir.
+    // 5 dakikada bir otomatik yenileme (Kotayı korumak için)
     const interval = setInterval(fetchRates, 300000);
     return () => clearInterval(interval);
   }, []);
@@ -71,7 +64,7 @@ const CurrencyTable = () => {
           <h3 className="text-2xl lg:text-3xl font-bold text-white flex items-center gap-3">
             💰 GÜNCEL KURLAR
           </h3>
-          <p className="text-slate-400 text-sm mt-1">Resmi Toptancı Canlı Verileri</p>
+          <p className="text-slate-400 text-sm mt-1">Şevval Döviz - Canlı Veriler</p>
         </div>
         <div className="text-right">
            <button onClick={fetchRates} className="text-yellow-500 hover:text-white transition p-2">
