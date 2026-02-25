@@ -8,28 +8,26 @@ export default async function handler(req, res) {
     });
     
     const rawData = await response.json();
-    const kurlar = rawData.result;
+    
+    if (!rawData.success) {
+      return res.status(200).json({ error: "API Kotası Dolmuş Olabilir" });
+    }
 
+    const kurlar = rawData.result;
     const getKur = (kod) => {
-      const kur = kurlar.find(k => k && k.code === kod);
-      if (!kur) return { alis: "0.0000", satis: "0.0000" };
-      const rawAlis = parseFloat(String(kur.buying).replace(',', '.'));
-      const rawSatis = parseFloat(String(kur.selling).replace(',', '.'));
-      
-      // Şevval Döviz Makas Ayarı (Binde 1)
-      return { 
-        alis: (rawAlis * 0.999).toFixed(4), 
-        satis: (rawSatis * 1.001).toFixed(4) 
-      };
+      const kur = kurlar.find(k => k.code === kod);
+      const alis = parseFloat(String(kur?.buying || 0).replace(',', '.'));
+      const satis = parseFloat(String(kur?.selling || 0).replace(',', '.'));
+      // Binde 1 makas
+      return { alis: (alis * 0.999).toFixed(4), satis: (satis * 1.001).toFixed(4) };
     };
 
-    // Vercel'de yanıt res.status(200).json() ile gönderilir
-    return res.status(200).json({
+    res.status(200).json({
       USD: getKur('USD'),
       EUR: getKur('EUR'),
       GBP: getKur('GBP')
     });
-  } catch (error) {
-    return res.status(500).json({ error: error.message });
+  } catch (err) {
+    res.status(500).json({ hata: err.message });
   }
 }
