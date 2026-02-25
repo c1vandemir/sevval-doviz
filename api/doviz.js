@@ -7,27 +7,44 @@ export default async function handler(req, res) {
       }
     });
     
-    const rawData = await response.json();
+    // API'den gelen veriyi önce düz yazı olarak alıyoruz ki çökmesin
+    const textData = await response.text();
+    let rawData;
     
-    if (!rawData.success) {
-      return res.status(200).json({ error: "API Kotası Dolmuş Olabilir" });
+    try {
+      rawData = JSON.parse(textData);
+    } catch (e) {
+      return res.status(200).json({ hata: "API JSON göndermedi", detay: textData });
+    }
+    
+    // Eğer API "başarısız" derse sebebiyle birlikte ekrana bas
+    if (!rawData || !rawData.success) {
+      return res.status(200).json({ hata: "API Hata Döndürdü (Kota bitmiş olabilir)", detay: rawData });
     }
 
     const kurlar = rawData.result;
+
     const getKur = (kod) => {
-      const kur = kurlar.find(k => k.code === kod);
-      const alis = parseFloat(String(kur?.buying || 0).replace(',', '.'));
-      const satis = parseFloat(String(kur?.selling || 0).replace(',', '.'));
-      // Binde 1 makas
-      return { alis: (alis * 0.999).toFixed(4), satis: (satis * 1.001).toFixed(4) };
+      const kur = kurlar?.find(k => k.code === kod);
+      if (!kur) return { alis: "0.0000", satis: "0.0000" };
+
+      const alis = parseFloat(String(kur.buying || 0).replace(',', '.'));
+      const satis = parseFloat(String(kur.selling || 0).replace(',', '.'));
+      
+      return { 
+        alis: (alis * 0.999).toFixed(4), 
+        satis: (satis * 1.001).toFixed(4) 
+      };
     };
 
-    res.status(200).json({
+    return res.status(200).json({
       USD: getKur('USD'),
       EUR: getKur('EUR'),
       GBP: getKur('GBP')
     });
+
   } catch (err) {
-    res.status(500).json({ hata: err.message });
+    // Sunucu içi donanımsal bir hata varsa
+    return res.status(200).json({ hata: "Sunucu Kod Hatası", detay: err.message });
   }
 }
